@@ -1,5 +1,5 @@
 import React from 'react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import SeverityBadge from './SeverityBadge';
 import { ShieldAlert } from 'lucide-react';
 
