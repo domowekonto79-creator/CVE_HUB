@@ -1,5 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { ShieldAlert, ArrowLeft } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client
+// Note: For Vite, we use import.meta.env.VITE_...
+// For Next.js, it would be process.env.NEXT_PUBLIC_...
+// We'll support both to be safe depending on how it's deployed.
+const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env?.VITE_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 // --- Components ---
 
@@ -122,18 +132,35 @@ function MitigationSection({ cve }: { cve: any }) {
 function Dashboard({ onSelectCve }: { onSelectCve: (id: string) => void }) {
   const [cves, setCves] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/cves')
-      .then(res => res.json())
-      .then(data => {
-        setCves(data);
+    async function fetchCves() {
+      if (!supabase) {
+        setErrorMsg("Brak konfiguracji Supabase. Ustaw zmienne środowiskowe VITE_SUPABASE_URL i VITE_SUPABASE_ANON_KEY (lub NEXT_PUBLIC_...).");
         setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
+        return;
+      }
+      
+      try {
+        const { data, error } = await supabase
+          .from("cve_records")
+          .select("*")
+          .order("in_kev", { ascending: false })
+          .order("cvss_score", { ascending: false })
+          .limit(25);
+          
+        if (error) throw error;
+        setCves(data || []);
+      } catch (err: any) {
+        console.error("Error fetching CVEs:", err);
+        setErrorMsg(`Błąd pobierania danych: ${err.message}`);
+      } finally {
         setLoading(false);
-      });
+      }
+    }
+    
+    fetchCves();
   }, []);
 
   return (
@@ -164,6 +191,10 @@ function Dashboard({ onSelectCve }: { onSelectCve: (id: string) => void }) {
       {loading ? (
         <div className="text-center py-20 bg-gray-900 rounded-xl border border-gray-800">
           <p className="text-gray-500">Ładowanie danych...</p>
+        </div>
+      ) : errorMsg ? (
+        <div className="text-center py-20 bg-red-950/40 rounded-xl border border-red-900">
+          <p className="text-red-400 font-bold">{errorMsg}</p>
         </div>
       ) : cves.length > 0 ? (
         <div className="overflow-x-auto rounded-xl border border-gray-800">
@@ -213,16 +244,29 @@ function CveDetail({ id, onBack }: { id: string, onBack: () => void }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/cves/${id}`)
-      .then(res => res.json())
-      .then(data => {
+    async function fetchCve() {
+      if (!supabase) {
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        const { data, error } = await supabase
+          .from("cve_records")
+          .select("*")
+          .eq("id", id)
+          .single();
+          
+        if (error) throw error;
         setCve(data);
+      } catch (err) {
+        console.error("Error fetching CVE details:", err);
+      } finally {
         setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
+      }
+    }
+    
+    fetchCve();
   }, [id]);
 
   if (loading) {

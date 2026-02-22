@@ -3,11 +3,11 @@ import { supabase } from '@/lib/supabase';
 import CveTable from '@/components/CveTable';
 import { ShieldAlert } from 'lucide-react';
 
-export const revalidate = 60; // Revalidate every minute
+export const dynamic = 'force-dynamic'; // Force dynamic rendering, bypass cache
 
 export default async function DashboardPage() {
   // Fetch CVEs sorted by KEV first, then CVSS score
-  const { data: cves } = await supabase
+  const { data: cves, error } = await supabase
     .from('cve_records')
     .select('*')
     .order('in_kev', { ascending: false })
@@ -40,7 +40,13 @@ export default async function DashboardPage() {
           </select>
         </div>
 
-        {cves && cves.length > 0 ? (
+        {error ? (
+          <div className="text-center py-20 bg-red-950/40 rounded-xl border border-red-900">
+            <p className="text-red-400 font-bold">Błąd pobierania danych z Supabase:</p>
+            <p className="text-red-300 mt-2">{error.message}</p>
+            <p className="text-red-300 mt-2 text-sm">Upewnij się, że zmienne NEXT_PUBLIC_SUPABASE_URL i NEXT_PUBLIC_SUPABASE_ANON_KEY są ustawione w Vercel.</p>
+          </div>
+        ) : cves && cves.length > 0 ? (
           <CveTable cves={cves} />
         ) : (
           <div className="text-center py-20 bg-gray-900 rounded-xl border border-gray-800">
