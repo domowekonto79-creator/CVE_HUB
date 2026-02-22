@@ -1,0 +1,5 @@
+{
+  "name": "CVE Enrichment Hub",
+  "description": "Aplikacja do monitorowania i wzbogacania danych o podatnościach (CVE) z NVD, KEV, OSV, GitHub i OTX.",
+  "requestFramePermissions": []
+}
