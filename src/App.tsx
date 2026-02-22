@@ -201,6 +201,7 @@ function Dashboard({ onSelectCve }: { onSelectCve: (id: string) => void }) {
                 <th className="px-6 py-4">CVE ID</th>
                 <th className="px-6 py-4">Severity</th>
                 <th className="px-6 py-4">Produkt</th>
+                <th className="px-6 py-4">Opis</th>
                 <th className="px-6 py-4">KEV</th>
                 <th className="px-6 py-4">Opublikowano</th>
               </tr>
@@ -237,7 +238,10 @@ function Dashboard({ onSelectCve }: { onSelectCve: (id: string) => void }) {
                     <td className="px-6 py-4">
                       <SeverityBadge severity={cve.cvss_severity} score={cve.cvss_score} />
                     </td>
-                    <td className="px-6 py-4 truncate max-w-[200px]">{product}</td>
+                    <td className="px-6 py-4 truncate max-w-[150px]">{product}</td>
+                    <td className="px-6 py-4 truncate max-w-[300px]" title={cve.description}>
+                      {cve.description || '-'}
+                    </td>
                     <td className="px-6 py-4">
                       {cve.in_kev ? <ShieldAlert className="text-red-500 w-5 h-5" /> : '-'}
                     </td>
