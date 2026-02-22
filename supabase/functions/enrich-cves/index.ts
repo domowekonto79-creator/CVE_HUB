@@ -101,42 +101,36 @@ async function fetchNvdCves(days = 7) {
 
 async function fetchOsv(cveId: string) {
   try {
-    const res = await fetchWithRetry("https://api.osv.dev/v1/query", {
-      method: "POST",
-      body: JSON.stringify({ id: cveId })
-    });
-    const data = await res.json();
-    const vulns = data.vulns || [];
-    if (vulns.length === 0) return { osv_data: null, affected_packages: [] };
+    const res = await fetchWithRetry(`https://api.osv.dev/v1/vulns/${cveId}`);
+    if (res.status === 404) return { osv_data: null, affected_packages: [] };
     
-    const osv_id = vulns[0].id;
+    const data = await res.json();
+    const osv_id = data.id;
     const affected_packages = [];
     
-    for (const vuln of vulns) {
-      for (const affected of vuln.affected || []) {
-        const pkg = affected.package || {};
-        const ranges = affected.ranges || [];
-        const vulnerable_range = [];
-        let fixed_version = null;
-        
-        for (const r of ranges) {
-          for (const event of r.events || []) {
-            if (event.introduced) vulnerable_range.push(`>=${event.introduced}`);
-            if (event.fixed) {
-              fixed_version = event.fixed;
-              vulnerable_range.push(`<${event.fixed}`);
-            }
+    for (const affected of data.affected || []) {
+      const pkg = affected.package || {};
+      const ranges = affected.ranges || [];
+      const vulnerable_range = [];
+      let fixed_version = null;
+      
+      for (const r of ranges) {
+        for (const event of r.events || []) {
+          if (event.introduced) vulnerable_range.push(`>=${event.introduced}`);
+          if (event.fixed) {
+            fixed_version = event.fixed;
+            vulnerable_range.push(`<${event.fixed}`);
           }
         }
-        
-        affected_packages.push({
-          package: pkg.name,
-          ecosystem: pkg.ecosystem,
-          vulnerable_range: vulnerable_range.join(", "),
-          fixed_version,
-          versions: affected.versions || []
-        });
       }
+      
+      affected_packages.push({
+        package: pkg.name,
+        ecosystem: pkg.ecosystem,
+        vulnerable_range: vulnerable_range.join(", "),
+        fixed_version,
+        versions: affected.versions || []
+      });
     }
     return { osv_data: { id: osv_id }, affected_packages };
   } catch (e) {
@@ -257,7 +251,12 @@ serve(async (req) => {
       
       // Upsert to Supabase
       const { error } = await supabase.from("cve_records").upsert(enrichedBatch);
-      if (error) console.error("Supabase upsert error:", error);
+      if (error) {
+        console.error("Supabase upsert error:", error);
+        if (error.code === "PGRST205") {
+          console.error("CRITICAL ERROR: The table 'cve_records' does not exist in your Supabase database. You MUST run the schema.sql script in your Supabase SQL Editor.");
+        }
+      }
     }
     
     return new Response(JSON.stringify({ message: "Pipeline run completed successfully" }), {

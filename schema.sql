@@ -8,7 +8,7 @@ CREATE TABLE cve_records (
   cvss_vector TEXT,
   cwe_id TEXT,
   cpe_list JSONB,
-  references JSONB,
+  "references" JSONB,
   in_kev BOOLEAN DEFAULT FALSE,
   kev_date_added DATE,
   kev_due_date DATE,

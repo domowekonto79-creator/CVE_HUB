@@ -1,0 +1,13 @@
+project_id = "your_project_ref"
+
+[api]
+port = 54321
+
+[db]
+port = 54322
+
+[studio]
+port = 54323
+
+[edge_runtime]
+enabled = true
