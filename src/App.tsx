@@ -207,7 +207,28 @@ function Dashboard({ onSelectCve }: { onSelectCve: (id: string) => void }) {
             </thead>
             <tbody className="divide-y divide-gray-800 bg-black">
               {cves.map((cve) => {
-                const product = cve.cpe_list?.[0]?.nodes?.[0]?.cpeMatch?.[0]?.criteria?.split(':')[4] || '-';
+                // Safely extract product name, fallback to '-' if not available
+                let product = '-';
+                try {
+                  if (cve.cpe_list && Array.isArray(cve.cpe_list) && cve.cpe_list.length > 0) {
+                    const nodes = cve.cpe_list[0]?.nodes;
+                    if (nodes && Array.isArray(nodes) && nodes.length > 0) {
+                      const matches = nodes[0]?.cpeMatch;
+                      if (matches && Array.isArray(matches) && matches.length > 0) {
+                        const criteria = matches[0]?.criteria;
+                        if (criteria) {
+                          const parts = criteria.split(':');
+                          if (parts.length > 4) {
+                            product = parts[4];
+                          }
+                        }
+                      }
+                    }
+                  }
+                } catch (e) {
+                  console.error("Error parsing CPE list for", cve.id, e);
+                }
+
                 return (
                   <tr key={cve.id} className="hover:bg-gray-900/50 transition-colors cursor-pointer" onClick={() => onSelectCve(cve.id)}>
                     <td className="px-6 py-4 font-medium text-blue-400">
@@ -220,7 +241,7 @@ function Dashboard({ onSelectCve }: { onSelectCve: (id: string) => void }) {
                     <td className="px-6 py-4">
                       {cve.in_kev ? <ShieldAlert className="text-red-500 w-5 h-5" /> : '-'}
                     </td>
-                    <td className="px-6 py-4">{new Date(cve.published_at).toLocaleDateString()}</td>
+                    <td className="px-6 py-4">{cve.published_at ? new Date(cve.published_at).toLocaleDateString() : '-'}</td>
                   </tr>
                 );
               })}
